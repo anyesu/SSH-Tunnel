@@ -1,0 +1,39 @@
+version: '2'
+
+services:
+
+  # 暴露代理服务器端口( SOCKS5 协议 )
+  ssh-to-expose-http-proxy:
+    image: jnovack/autossh
+    container_name: autossh-ssh-to-expose-http-proxy
+    environment:
+    - SSH_HOSTUSER=$SSH_HOSTUSER
+    - SSH_HOSTNAME=$SSH_HOSTNAME
+    - SSH_HOSTPORT=$SSH_HOSTPORT
+    - SSH_TUNNEL_REMOTE=$SSH_TUNNEL_REMOTE_HTTP_PROXY
+    - SSH_TUNNEL_HOST=$SSH_TUNNEL_HOST_HTTP_PROXY
+    - SSH_TUNNEL_LOCAL=$SSH_TUNNEL_LOCAL_HTTP_PROXY
+    restart: always
+    volumes:
+    - ~/.ssh/id_rsa:/id_rsa
+
+  # 创建本地代理( 172.17.0.1 对应宿主机的IP, 根据自己的情况替换 )
+  ssh-to-local-proxy:
+    image: jnovack/autossh
+    container_name: autossh-ssh-to-local-proxy
+    entrypoint:
+      autossh
+      -M 0
+      -N
+      -o ServerAliveInterval=5
+      -o ServerAliveCountMax=1
+      -o "ExitOnForwardFailure yes"
+      -o "StrictHostKeyChecking no"
+      -t -t
+      -i /id_rsa
+      -D 0.0.0.0:1080
+      -p $SSH_HOSTPORT_LOCALHOST
+      $SSH_HOSTUSER_LOCALHOST@$SSH_HOSTNAME_LOCALHOST
+    restart: always
+    volumes:
+    - ~/.ssh/id_rsa:/id_rsa

@@ -1,0 +1,54 @@
+version: '2'
+
+services:
+
+  # 创建 shadowsocks 服务器( 提供 shadowsocks 协议的代理 )
+  shadowsocks-server:
+    image: easypi/shadowsocks-libev
+    container_name: shadowsocks-server
+    # 自己看情况决定是否需要把端口暴露给本地网络
+    #    ports:
+    #      - "8388:8388/tcp"
+    #      - "8388:8388/udp"
+    environment:
+    - METHOD=aes-256-cfb
+    - PASSWORD=$SHADOWSOCKS_PASSWORD
+    restart: always
+
+  # 创建 shadowsocks 代理服务器( 连接 shadowsocks 服务器并提供 SOCKS5 协议的代理 )
+  # ssclient连接存活时间较短，减小SSH客户端的ServerAliveInterval(如30s)来维持连接
+  shadowsocks-client:
+    image: easypi/shadowsocks-libev
+    container_name: shadowsocks-client
+    command:
+      ss-local -s shadowsocks-server
+      -p 8388
+      -m aes-256-cfb
+      -k $SHADOWSOCKS_PASSWORD
+      -b 0.0.0.0
+      -l 1080
+      -t 60
+      --fast-open
+    # 自己看情况决定是否需要把端口暴露给本地网络
+    #    ports:
+    #      - "1080:1080"
+    restart: always
+    depends_on:
+    - shadowsocks-server
+
+  # 暴露 shadowsocks 服务器端口到远端服务器( shadowsocks 协议 )
+  ssh-to-expose-shadowsocks:
+    image: jnovack/autossh
+    container_name: autossh-ssh-to-expose-shadowsocks
+    environment:
+    - SSH_HOSTUSER=$SSH_HOSTUSER
+    - SSH_HOSTNAME=$SSH_HOSTNAME
+    - SSH_HOSTPORT=$SSH_HOSTPORT
+    - SSH_TUNNEL_REMOTE=$SSH_TUNNEL_REMOTE_SHADOWSOCKS
+    - SSH_TUNNEL_HOST=shadowsocks-server
+    - SSH_TUNNEL_LOCAL=8388
+    restart: always
+    volumes:
+    - ~/.ssh/id_rsa:/id_rsa
+    depends_on:
+    - shadowsocks-server

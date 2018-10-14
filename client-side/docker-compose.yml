@@ -1,0 +1,20 @@
+version: '2'
+
+services:
+
+  # 暴露本地ssh端口到远端服务器端口
+  ssh-to-expose-ssh-server:
+    image: jnovack/autossh
+    container_name: autossh-ssh-to-expose-ssh-server
+    # 使用宿主机的网络
+    network_mode: host
+    environment:
+    - SSH_HOSTUSER=$SSH_HOSTUSER
+    - SSH_HOSTNAME=$SSH_HOSTNAME
+    - SSH_HOSTPORT=$SSH_HOSTPORT
+    - SSH_TUNNEL_REMOTE=$SSH_TUNNEL_REMOTE_SSH
+    - SSH_TUNNEL_HOST=$SSH_TUNNEL_HOST_SSH
+    - SSH_TUNNEL_LOCAL=$SSH_TUNNEL_LOCAL_SSH
+    restart: always
+    volumes:
+    - ~/.ssh/id_rsa:/id_rsa
